@@ -25,7 +25,7 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
-	"github.com/huhnsystems/gohenry/internal/domain"
+	"github.com/huhndev/gohenry/internal/domain"
 )
 
 // GetRoomType determines if a room is a direct message or group chat

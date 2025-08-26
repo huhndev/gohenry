@@ -17,7 +17,7 @@ package services
 import (
 	"context"
 
-	"github.com/huhnsystems/gohenry/internal/domain"
+	"github.com/huhndev/gohenry/internal/domain"
 )
 
 // AIService defines the interface for AI (Claude) interactions

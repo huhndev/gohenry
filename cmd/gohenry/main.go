@@ -21,10 +21,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/huhnsystems/gohenry/internal/adapters/services/claude"
-	"github.com/huhnsystems/gohenry/internal/adapters/services/matrix"
-	"github.com/huhnsystems/gohenry/internal/app"
-	"github.com/huhnsystems/gohenry/internal/config"
+	"github.com/huhndev/gohenry/internal/adapters/services/claude"
+	"github.com/huhndev/gohenry/internal/adapters/services/matrix"
+	"github.com/huhndev/gohenry/internal/app"
+	"github.com/huhndev/gohenry/internal/config"
 )
 
 func main() {

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/huhnsystems/gohenry/internal/config"
-	"github.com/huhnsystems/gohenry/internal/ports/services"
+	"github.com/huhndev/gohenry/internal/config"
+	"github.com/huhndev/gohenry/internal/ports/services"
 )
 
 // InviteService handles room invitation operations

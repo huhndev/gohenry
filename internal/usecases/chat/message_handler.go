@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/huhnsystems/gohenry/internal/config"
-	"github.com/huhnsystems/gohenry/internal/domain"
-	"github.com/huhnsystems/gohenry/internal/ports/services"
+	"github.com/huhndev/gohenry/internal/config"
+	"github.com/huhndev/gohenry/internal/domain"
+	"github.com/huhndev/gohenry/internal/ports/services"
 )
 
 // MessageHandler processes incoming messages and decides how to respond

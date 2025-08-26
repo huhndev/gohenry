@@ -20,7 +20,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/huhnsystems/gohenry/internal/domain"
+	"github.com/huhndev/gohenry/internal/domain"
 )
 
 // Service implements the AIService interface using Claude

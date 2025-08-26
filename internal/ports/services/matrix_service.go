@@ -19,7 +19,7 @@ import (
 
 	"maunium.net/go/mautrix/event"
 
-	"github.com/huhnsystems/gohenry/internal/domain"
+	"github.com/huhndev/gohenry/internal/domain"
 )
 
 // MatrixService defines the interface for Matrix interactions

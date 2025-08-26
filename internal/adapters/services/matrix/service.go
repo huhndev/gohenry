@@ -20,8 +20,8 @@ import (
 
 	"maunium.net/go/mautrix/event"
 
-	"github.com/huhnsystems/gohenry/internal/config"
-	"github.com/huhnsystems/gohenry/internal/domain"
+	"github.com/huhndev/gohenry/internal/config"
+	"github.com/huhndev/gohenry/internal/domain"
 )
 
 // Service implements the MatrixService interface

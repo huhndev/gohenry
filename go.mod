@@ -1,4 +1,4 @@
-module github.com/huhnsystems/gohenry
+module github.com/huhndev/gohenry
 
 go 1.19
 

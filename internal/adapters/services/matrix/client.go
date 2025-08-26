@@ -27,8 +27,8 @@ import (
 	"maunium.net/go/mautrix/event"
 	"maunium.net/go/mautrix/id"
 
-	"github.com/huhnsystems/gohenry/internal/config"
-	"github.com/huhnsystems/gohenry/internal/domain"
+	"github.com/huhndev/gohenry/internal/config"
+	"github.com/huhndev/gohenry/internal/domain"
 )
 
 // loadSyncToken loads the sync token from a file
