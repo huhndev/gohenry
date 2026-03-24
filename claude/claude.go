@@ -1,57 +1,38 @@
-//Copyright (c) 2025, Julian Huhn
-//
-//Permission to use, copy, modify, and/or distribute this software for any
-//purpose with or without fee is hereby granted, provided that the above
-//copyright notice and this permission notice appear in all copies.
-//
-//THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-//WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-//MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-//ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-//WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-//ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-//OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
 package claude
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
+
+	"github.com/huhndev/gohenry/domain"
 )
 
 const (
-	claudeAPIURL    = "https://api.anthropic.com/v1/messages"
-	claudeAPIModel  = "claude-3-7-sonnet-20250219"
-	claudeMaxTokens = 1024 // Limit response length for conciseness
+	apiURL    = "https://api.anthropic.com/v1/messages"
+	apiModel  = "claude-3-7-sonnet-20250219"
+	maxTokens = 1024
 )
 
-// Client handles interactions with the Claude API
-type Client struct {
-	apiKey     string
-	httpClient *http.Client
-}
-
-// Message represents a message sent to or received from Claude
-type Message struct {
+type message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-// Request represents a request to the Claude API
-type Request struct {
+type request struct {
 	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
+	Messages    []message `json:"messages"`
 	MaxTokens   int       `json:"max_tokens"`
 	Temperature float64   `json:"temperature"`
 	System      string    `json:"system"`
 }
 
-// Response represents a response from the Claude API
-type Response struct {
+type response struct {
 	ID      string `json:"id"`
 	Type    string `json:"type"`
 	Role    string `json:"role"`
@@ -63,13 +44,17 @@ type Response struct {
 	Model      string `json:"model"`
 }
 
-// NewClient creates a new Claude API client
-func NewClient(apiKey string) (*Client, error) {
+// Service implements the AIService interface using Claude
+type Service struct {
+	apiKey     string
+	httpClient *http.Client
+}
+
+func NewService(apiKey string) (*Service, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("Claude API key is required")
 	}
-
-	return &Client{
+	return &Service{
 		apiKey: apiKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
@@ -77,8 +62,7 @@ func NewClient(apiKey string) (*Client, error) {
 	}, nil
 }
 
-// GetSystemPrompt returns the default system prompt for Claude
-func (c *Client) GetSystemPrompt() string {
+func (s *Service) systemPrompt() string {
 	return `You are Henry, a helpful, intelligent, and personable AI assistant powered by Claude 3.7 Sonnet. Your purpose is to provide users with accurate, thoughtful, and contextually relevant responses while maintaining a consistent and engaging personality.
 
 You're designed to be helpful, knowledgeable, friendly, and context-aware. Always prioritize being genuinely useful to users in accomplishing their goals. Provide accurate information across a wide range of topics, maintaining a warm, approachable tone that makes conversations enjoyable. Actively reference and build upon prior exchanges in the conversation.
@@ -102,76 +86,143 @@ If you encounter incomplete or corrupted message history, inform the user and re
 Remember that your primary goal is to be helpful, accurate, and engaging while maintaining a consistent personality and demonstrating awareness of the conversation history.`
 }
 
-// SendRequest sends a request to the Claude API and returns the response
-func (c *Client) SendRequest(messages []Message) (string, error) {
-	return c.SendRequestWithCustomSystemPrompt(messages, c.GetSystemPrompt())
+// GenerateResponse sends a conversation to Claude and returns the response
+func (s *Service) GenerateResponse(
+	ctx context.Context,
+	messages []domain.ConversationMessage,
+) (string, error) {
+	log.Printf("Generating response with %d context messages", len(messages))
+
+	userMessageCount := 0
+	for _, msg := range messages {
+		if msg.Role == domain.RoleUser {
+			userMessageCount++
+		}
+	}
+	log.Printf("Context includes %d user messages and %d assistant messages",
+		userMessageCount, len(messages)-userMessageCount)
+
+	for i, msg := range messages {
+		contentPreview := msg.Content
+		if len(contentPreview) > 50 {
+			contentPreview = contentPreview[:50] + "..."
+		}
+
+		var senderInfo string
+		if msg.SenderID != "" {
+			senderInfo = fmt.Sprintf(" (from: %s)", msg.SenderID)
+		}
+
+		var timeInfo string
+		if msg.Timestamp > 0 {
+			t := time.Unix(0, msg.Timestamp*int64(time.Millisecond))
+			timeInfo = fmt.Sprintf(" @ %s", t.Format("15:04:05"))
+		}
+
+		log.Printf("  Message %d: %s%s%s - %s",
+			i, msg.Role, senderInfo, timeInfo, contentPreview)
+	}
+
+	claudeMessages := make([]message, len(messages))
+	for i, msg := range messages {
+		var timeStr string
+		if msg.Timestamp > 0 {
+			t := time.Unix(0, msg.Timestamp*int64(time.Millisecond))
+			timeStr = t.Format("2006-01-02 15:04:05")
+		} else {
+			timeStr = time.Now().Format("2006-01-02 15:04:05")
+		}
+
+		senderInfo := msg.SenderID
+		if senderInfo == "" {
+			if msg.Role == domain.RoleUser {
+				senderInfo = "User"
+			} else {
+				senderInfo = "Henry"
+			}
+		}
+
+		claudeMessages[i] = message{
+			Role:    string(msg.Role),
+			Content: fmt.Sprintf("%s %s: %s", timeStr, senderInfo, msg.Content),
+		}
+	}
+
+	var latestTimestamp int64
+	for _, msg := range messages {
+		if msg.Timestamp > latestTimestamp {
+			latestTimestamp = msg.Timestamp
+		}
+	}
+
+	var currentDate, currentTime string
+	if latestTimestamp > 0 {
+		t := time.Unix(0, latestTimestamp*int64(time.Millisecond))
+		currentDate = t.Format("2006-01-02")
+		currentTime = t.Format("15:04")
+	} else {
+		now := time.Now()
+		currentDate = now.Format("2006-01-02")
+		currentTime = now.Format("15:04")
+	}
+
+	systemPrompt := s.systemPrompt()
+	systemPrompt += fmt.Sprintf("\n\nCRITICAL INSTRUCTION:\n"+
+		"1. NEVER include timestamp or username prefixes in your responses. NEVER respond in the format '2025-03-21 10:42:05 @henry:henhouse.im: [content]'. Always respond with ONLY the message content.\n"+
+		"2. If asked about the current date, use: %s\n"+
+		"3. If asked about the current time, use: %s (without seconds)",
+		currentDate, currentTime)
+
+	return s.sendRequest(claudeMessages, systemPrompt)
 }
 
-// SendRequestWithCustomSystemPrompt sends a request to the Claude API with a custom system prompt
-func (c *Client) SendRequestWithCustomSystemPrompt(
-	messages []Message,
-	systemPrompt string,
-) (string, error) {
-	// Create request body
-	reqBody := Request{
-		Model:       claudeAPIModel,
+func (s *Service) sendRequest(messages []message, systemPrompt string) (string, error) {
+	reqBody := request{
+		Model:       apiModel,
 		Messages:    messages,
-		MaxTokens:   claudeMaxTokens,
+		MaxTokens:   maxTokens,
 		Temperature: 0.7,
 		System:      systemPrompt,
 	}
 
-	// Marshal request to JSON
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal request: %v", err)
 	}
 
-	// Create HTTP request
-	req, err := http.NewRequest("POST", claudeAPIURL, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", c.apiKey)
+	req.Header.Set("x-api-key", s.apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	// Send request
-	resp, err := c.httpClient.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %v", err)
 	}
 	defer resp.Body.Close()
 
-	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response: %v", err)
 	}
 
-	// Check for error response
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf(
-			"API error: %s (status %d)",
-			string(body),
-			resp.StatusCode,
-		)
+		return "", fmt.Errorf("API error: %s (status %d)", string(body), resp.StatusCode)
 	}
 
-	// Parse response
-	var claudeResp Response
+	var claudeResp response
 	if err := json.Unmarshal(body, &claudeResp); err != nil {
 		return "", fmt.Errorf("failed to parse response: %v", err)
 	}
 
-	// Extract text from response
 	if len(claudeResp.Content) == 0 {
 		return "", fmt.Errorf("empty response from Claude")
 	}
 
-	// Combine all text parts (should typically just be one)
 	var responseText string
 	for _, content := range claudeResp.Content {
 		if content.Type == "text" {

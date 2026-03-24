@@ -1,71 +1,33 @@
 <p align="center">
-  <code>gohenry</code> is a Claude-powered Matrix chatbot.
+  <code>gohenry</code> is a <a href="https://www.anthropic.com/claude">Claude</a>-powered <a href="https://matrix.org">Matrix</a> chatbot.
 </p>
 
-#
-
-### Main Features
-
-- Powered by Claude
-- Matrix protocol integration
-- Configurable context window
-- 1:1 and group chats
-
-#
-
-> [!IMPORTANT]
-> `gohenry` is pre-alpha software.
-
-> [!CAUTION]
-> `gohenry` is part of a [vibe coding] project.
-
-***
+---
 
 ### Usage
 
-In direct messages, Henry will respond to all messages from users. In group chats, Henry only responds when directly addressed with a mention:
-
 ```
-henry, what's the answer to the ultimate question of life, the universe and everything?
+HENRY_MATRIX_HOMESERVER=https://matrix.example.com HENRY_MATRIX_USER_ID=@henry:example.com HENRY_CLAUDE_API_KEY=sk-... HENRY_MATRIX_PASSWORD=... gohenry
 ```
 
-To configure `gohenry` use environment variables.
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `HENRY_MATRIX_HOMESERVER` | yes | | Base URL of the Matrix homeserver |
+| `HENRY_MATRIX_USER_ID` | yes | | Matrix user ID for the bot |
+| `HENRY_CLAUDE_API_KEY` | yes | | Claude API key |
+| `HENRY_MATRIX_ACCESS_TOKEN` | one of | | Pre-authenticated access token |
+| `HENRY_MATRIX_PASSWORD` | one of | | Matrix account password |
+| `HENRY_CONTEXT_MESSAGE_COUNT` | no | `10` | Number of previous messages to include as context |
+| `HENRY_ALLOWED_DOMAIN` | no | `henhouse.im` | Domain to restrict responses to |
 
-#### Required Environment Variables
-
-- `HENRY_MATRIX_HOMESERVER`: URL of the Matrix homeserver (e.g., "https://matrix.org")
-- `HENRY_MATRIX_USER_ID`: Matrix user ID for the bot (e.g., "@henry:matrix.org")
-- `HENRY_CLAUDE_API_KEY`: Claude API key for authentication
-
-#### Authentication (one of the following is required)
-
-- `HENRY_MATRIX_ACCESS_TOKEN`: Pre-authenticated access token for Matrix
-- `HENRY_MATRIX_PASSWORD`: Password for the Matrix account (if access token isn't provided)
-
-#### Optional Environment Variables
-
-- `HENRY_CONTEXT_MESSAGE_COUNT`: Number of previous messages to include as context (default: 10)
-- `HENRY_ALLOWED_DOMAIN`: Domain to restrict responses to (e.g., "matrix.org")
-
-#### Running the Bot
-
-```bash
-./gohenry
-```
-#### Debug Mode
-
-```bash
-./gohenry debug
-```
+In direct messages, Henry responds to all messages. In group chats, Henry only responds when addressed by name.
 
 ### License
 
-The package may be used under the terms of the ISC License a copy of
-which may be found in the file [LICENSE].
+The package may be used under the terms of the ISC License a copy of which may be found in the file [LICENSE](LICENSE).
 
-Unless you explicitly state otherwise, any contribution submitted for inclusion
-in the work by you shall be licensed as above, without any additional terms or
-conditions.
+Unless you explicitly state otherwise, any contribution submitted for inclusion in the work by you shall be licensed as above, without any additional terms or conditions.
 
-[LICENSE]: https://github.com/huhndev/gohenry/blob/master/LICENSE
-[vibe coding]: https://en.wikipedia.org/wiki/Vibe_coding
+---
+
+Built with AI assistance.
